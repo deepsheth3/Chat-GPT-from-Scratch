@@ -4,7 +4,7 @@ import os
 class Input_to_enode():
     def __init__(self):
         try:
-            with open('data/input.txt', 'r', encoding='utf-8') as f:
+            with open(r'data/input.txt', 'r', encoding='utf-8') as f:
                 text = f.read()
         except:
             print('Input file not found')

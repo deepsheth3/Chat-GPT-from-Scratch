@@ -2,9 +2,9 @@ import os
 import ast
 from input_to_encode import Input_to_enode
 
-if os.path.exists('encoded_input.txt'):
+if os.path.exists(r'data/encoded_input.txt'):
     print('File Exists')
-    with open('encoded_input.txt', 'r', encoding='utf-8') as f:
+    with open(r'data/encoded_input.txt', 'r', encoding='utf-8') as f:
         data = ast.literal_eval(f.read())
     with open('files/stoi.txt', 'r', encoding='utf-8') as f:
         stoi = ast.literal_eval(f.read())
