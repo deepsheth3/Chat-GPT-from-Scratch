@@ -14,8 +14,16 @@ else:
     Input_to_enode()
     print('encoded_input.txt created!')
 
-n = 0.8*len(data)
+n = int(0.8*len(data))
 train_data = data[:n]
 val_data = data[n:]
 
 block_size = 8
+
+x = train_data[:block_size]
+y = train_data[1:block_size+1]
+
+for idx in range(block_size):
+    context = x[:idx+1]
+    target = y[idx]
+    print(f'When context is {context} the target is {target}')
