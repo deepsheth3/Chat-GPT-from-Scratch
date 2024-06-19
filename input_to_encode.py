@@ -4,7 +4,7 @@ import os
 class Input_to_enode():
     def __init__(self):
         try:
-            with open('input.txt', 'r', encoding='utf-8') as f:
+            with open(r'data/input.txt', 'r', encoding='utf-8') as f:
                 text = f.read()
         except:
             print('Input file not found')
@@ -27,7 +27,7 @@ class Input_to_enode():
             os.makedirs(directory)
 
         try:
-            file = open('encoded_input.txt', 'w')
+            file = open('data/encoded_input.txt', 'w')
             file.write(str(data.tolist()))
             file.close()
 
