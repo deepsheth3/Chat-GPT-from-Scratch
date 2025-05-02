@@ -3,10 +3,10 @@ import torch.nn as nn
 from torch.nn import functional as F
 
 # ====== CONFIG ======
-batch_size = 8
-block_size = 16
-learning_rate = 1e-3
-n_embd = 32
+batch_size = 64
+block_size = 256
+learning_rate = 3e-4
+n_embd = 384
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 torch.manual_seed(681)
 
@@ -54,7 +54,8 @@ class FeedForward(nn.Module):
         self.net = nn.Sequential(
             nn.Linear(n_embd, 4 * n_embd),
             nn.ReLU(),
-            nn.Linear(4 * n_embd, n_embd)
+            nn.Linear(4 * n_embd, n_embd),
+            nn.Dropout(0.2)
         )
 
     def forward(self, x):
@@ -66,6 +67,7 @@ class Head(nn.Module):
         self.key = nn.Linear(n_embd, head_size, bias=False)
         self.query = nn.Linear(n_embd, head_size, bias=False)
         self.value = nn.Linear(n_embd, head_size, bias=False)
+        self.dropout = nn.Dropout(0.2)
         self.register_buffer('tril', torch.tril(torch.ones(block_size, block_size)))
 
     def forward(self, x):
@@ -75,6 +77,7 @@ class Head(nn.Module):
         wei = q @ k.transpose(-2, -1) * C ** -0.5
         wei = wei.masked_fill(self.tril[:T, :T] == 0, float('-inf'))
         wei = F.softmax(wei, dim=-1)
+        wei = self.dropout(wei)
         v = self.value(x)
         out = wei @ v
         return out
@@ -84,10 +87,12 @@ class MultiHeadAttention(nn.Module):
         super().__init__()
         self.heads = nn.ModuleList([Head(head_size) for _ in range(n_heads)])
         self.proj = nn.Linear(n_embd, n_embd)
+        self.dropout = nn.Dropout(0.2)
 
     def forward(self, x):
         out = torch.cat([h(x) for h in self.heads], dim=-1)
-        return self.proj(out)
+        out = self.dropout(self.proj(out))
+        return out
 
 class Block(nn.Module):
     def __init__(self, n_embd, n_heads):
@@ -109,11 +114,14 @@ class BiGramLanguageModel(nn.Module):
         self.token_embd_table = nn.Embedding(vocab_size, n_embd)
         self.pos_embd = nn.Embedding(block_size, n_embd)
         self.blocks = nn.Sequential(
-            Block(n_embd, n_heads=4),
-            Block(n_embd, n_heads=4),
-            Block(n_embd, n_heads=4),
-            nn.LayerNorm(n_embd)
+            Block(n_embd, n_heads=6),
+            Block(n_embd, n_heads=6),
+            Block(n_embd, n_heads=6),
+            Block(n_embd, n_heads=6),
+            Block(n_embd, n_heads=6),
+            Block(n_embd, n_heads=6),
         )
+        self.ln_f = nn.LayerNorm(n_embd)
         self.lm_head = nn.Linear(n_embd, vocab_size)
 
     def forward(self, idx, targets=None):
@@ -122,6 +130,7 @@ class BiGramLanguageModel(nn.Module):
         pos_embd = self.pos_embd(torch.arange(T, device=idx.device))
         x = tok_embd + pos_embd
         x = self.blocks(x)
+        x = self.ln_f(x)
         logits = self.lm_head(x)
 
         loss = None
@@ -147,7 +156,7 @@ class BiGramLanguageModel(nn.Module):
 model = BiGramLanguageModel(vocab_size).to(device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
 
-for iter in range(10000):
+for iter in range(5000):
     if iter % 1000 == 0:
         losses = estimate_loss()
         print(f"step {iter}: train loss {losses['train']:.4f}, val loss {losses['test']:.4f}")
